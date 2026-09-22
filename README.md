@@ -8,7 +8,7 @@ Deploys as-is to GitHub Pages (or any static host).
 - `index.html` — landing page, demo, ROI calculator, offer, CTA
 - `styles.css` — all styling, mobile-first, reduced-motion aware
 - `app.js` — personalization, call simulation state machine, ROI calculator,
-  speech synthesis (optional), copy-to-clipboard
+  call-workflow simulation, owner dashboard, copy-to-clipboard
 - `404.html` — fallback page for GitHub Pages
 
 ## Personalization
