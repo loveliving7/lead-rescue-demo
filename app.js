@@ -19,7 +19,7 @@
     var note = document.getElementById("hero-personalized");
     if (heading) {
       heading.textContent =
-        "When " + info.business + "'s office closes, Lead Rescue keeps capturing its HVAC leads.";
+        "When " + info.business + "'s team can't answer, Lead Rescue keeps capturing its HVAC leads.";
     }
     if (note) {
       var text = "Personalized preview for " + info.business;
@@ -33,7 +33,7 @@
     var ctaLede = document.getElementById("cta-lede");
     if (ctaLede) {
       ctaLede.textContent =
-        "Reply to the email that sent you this demo and we'll configure a 7-night live pilot around " +
+        "Reply to the email that sent you this demo and we'll configure a 7-day live pilot around " +
         info.business +
         "'s actual call flow — no card, no contract.";
     }
@@ -739,9 +739,9 @@
       var info = getProspectInfo();
       var businessLine = info.business ? " for " + info.business : "";
       var message =
-        "Hi — I'd like to request a 7-night Lead Rescue live pilot" +
+        "Hi — I'd like to request a 7-day Lead Rescue live pilot" +
         businessLine +
-        " (no card, no contract). Please configure it around our actual after-hours call flow and confirm usage/telephony limits before activation.";
+        " (no card, no contract). Please configure it around our actual missed-call, overflow, and after-hours call flow and confirm usage/telephony limits before activation.";
 
       copyText(message, function (success) {
         confirmEl.textContent = success
