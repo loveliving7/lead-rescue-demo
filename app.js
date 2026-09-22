@@ -19,14 +19,14 @@
     var note = document.getElementById("hero-personalized");
     if (heading) {
       heading.textContent =
-        "Capture the HVAC calls " + info.business + " misses after hours.";
+        "When " + info.business + "'s office closes, Lead Rescue keeps capturing its HVAC leads.";
     }
     if (note) {
       var text = "Personalized preview for " + info.business;
       if (info.city) {
         text += " in " + info.city;
       }
-      text += ". No live phone line is connected — this is an interactive demo.";
+      text += ". This is a simulated workflow, not a live phone line.";
       note.textContent = text;
       note.hidden = false;
     }
@@ -40,57 +40,13 @@
     document.title = "Lead Rescue — a demo built for " + info.business;
   }
 
-  /* ---------- Speech synthesis (optional, muted-capable) ---------- */
-
-  var speechEnabled = true;
-  var synth = window.speechSynthesis || null;
-
-  function speak(text) {
-    if (!speechEnabled || !synth) {
-      return;
-    }
-    try {
-      synth.cancel();
-      var utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1;
-      utter.pitch = 1;
-      synth.speak(utter);
-    } catch (err) {
-      /* speech synthesis is optional; ignore failures */
-    }
-  }
-
-  function initMuteToggle() {
-    var btn = document.getElementById("mute-toggle");
-    var label = document.getElementById("mute-label");
-    var icon = document.getElementById("mute-icon");
-    if (!btn) {
-      return;
-    }
-    if (!synth) {
-      speechEnabled = false;
-      btn.disabled = true;
-      label.textContent = "Voice: unsupported";
-      return;
-    }
-    btn.addEventListener("click", function () {
-      speechEnabled = !speechEnabled;
-      btn.setAttribute("aria-pressed", String(!speechEnabled));
-      label.textContent = speechEnabled ? "Voice: on" : "Voice: off";
-      icon.textContent = speechEnabled ? "🔊" : "🔇";
-      if (!speechEnabled && synth) {
-        synth.cancel();
-      }
-    });
-  }
-
-  /* ---------- Call simulation ---------- */
+  /* ---------- Call simulation data ---------- */
 
   var SCENARIOS = [
-    { id: "no-heat", label: "No heat", issue: "No heat" },
-    { id: "no-cooling", label: "No cooling", issue: "No cooling / AC not working" },
-    { id: "water-boiler", label: "Water / boiler issue", issue: "Water leak or boiler issue" },
-    { id: "replacement", label: "Replacement quote", issue: "Interested in a replacement quote" }
+    { id: "no-heat", label: "No heat", issue: "No heat", category: "Heating repair" },
+    { id: "no-cooling", label: "No cooling", issue: "No cooling / AC not working", category: "Cooling repair" },
+    { id: "water-boiler", label: "Water / boiler issue", issue: "Water leak or boiler issue", category: "Plumbing / boiler" },
+    { id: "replacement", label: "Replacement quote", issue: "Interested in a replacement quote", category: "Replacement estimate" }
   ];
 
   var URGENCY_OPTIONS = [
@@ -108,6 +64,16 @@
 
   var TOTAL_STEPS = 6;
 
+  var FIELD_DEFS = [
+    { key: "name", label: "Caller name" },
+    { key: "phone", label: "Phone" },
+    { key: "location", label: "Location" },
+    { key: "issue", label: "Issue" },
+    { key: "urgency", label: "Urgency" },
+    { key: "callTime", label: "Preferred callback" },
+    { key: "category", label: "Service category" }
+  ];
+
   var state = {
     step: 0,
     scenario: null,
@@ -115,10 +81,14 @@
     name: "",
     phone: "",
     location: "",
-    callTime: null
+    callTime: null,
+    transcript: []
   };
 
-  var callLogEl, inputAreaEl, statusEl, summaryCard, summaryList;
+  var callLogEl, inputAreaEl, statusEl, fieldListEl, eventRailEl;
+  var callTitleEl, callTimerEl, callStatusDotEl;
+  var timerInterval = null;
+  var timerSeconds = 0;
 
   function resetState() {
     state = {
@@ -128,21 +98,43 @@
       name: "",
       phone: "",
       location: "",
-      callTime: null
+      callTime: null,
+      transcript: []
     };
   }
 
-  function clearLog() {
-    while (callLogEl.firstChild) {
-      callLogEl.removeChild(callLogEl.firstChild);
+  function clearChildren(el) {
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
     }
   }
 
-  function clearInputArea() {
-    while (inputAreaEl.firstChild) {
-      inputAreaEl.removeChild(inputAreaEl.firstChild);
+  /* ---------- Call timer ---------- */
+
+  function formatTimer(totalSeconds) {
+    var m = Math.floor(totalSeconds / 60);
+    var s = totalSeconds % 60;
+    return (m < 10 ? "0" + m : String(m)) + ":" + (s < 10 ? "0" + s : String(s));
+  }
+
+  function startTimer() {
+    stopTimer();
+    timerSeconds = 0;
+    callTimerEl.textContent = formatTimer(0);
+    timerInterval = window.setInterval(function () {
+      timerSeconds += 1;
+      callTimerEl.textContent = formatTimer(timerSeconds);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      window.clearInterval(timerInterval);
+      timerInterval = null;
     }
   }
+
+  /* ---------- Transcript log ---------- */
 
   function appendLogLine(speaker, text) {
     var line = document.createElement("div");
@@ -159,11 +151,12 @@
     line.appendChild(textEl);
     callLogEl.appendChild(line);
     callLogEl.scrollTop = callLogEl.scrollHeight;
+
+    state.transcript.push({ speaker: speaker, text: text });
   }
 
   function agentSay(text) {
     appendLogLine("agent", text);
-    speak(text);
   }
 
   function callerSay(text) {
@@ -173,6 +166,63 @@
   function setStatus(stepNumber, description) {
     statusEl.textContent = "Step " + stepNumber + " of " + TOTAL_STEPS + " — " + description;
   }
+
+  /* ---------- Live extraction panel ---------- */
+
+  function renderFieldList() {
+    clearChildren(fieldListEl);
+    FIELD_DEFS.forEach(function (def) {
+      var dt = document.createElement("dt");
+      dt.textContent = def.label;
+
+      var dd = document.createElement("dd");
+      var value = readFieldValue(def.key);
+      if (value) {
+        dd.textContent = value;
+        dd.className = "field-value field-value-filled";
+      } else {
+        dd.textContent = "—";
+        dd.className = "field-value field-value-empty";
+      }
+
+      fieldListEl.appendChild(dt);
+      fieldListEl.appendChild(dd);
+    });
+  }
+
+  function readFieldValue(key) {
+    switch (key) {
+      case "name":
+        return state.name;
+      case "phone":
+        return state.phone;
+      case "location":
+        return state.location;
+      case "issue":
+        return state.scenario ? state.scenario.issue : "";
+      case "urgency":
+        return state.urgency ? state.urgency.label : "";
+      case "callTime":
+        return state.callTime ? state.callTime.label : "";
+      case "category":
+        return state.scenario ? state.scenario.category : "";
+      default:
+        return "";
+    }
+  }
+
+  function addEvent(text) {
+    if (eventRailEl.querySelector(".event-placeholder")) {
+      clearChildren(eventRailEl);
+    }
+    var item = document.createElement("li");
+    item.className = "event-item";
+    item.textContent = text;
+    eventRailEl.appendChild(item);
+    eventRailEl.scrollTop = eventRailEl.scrollHeight;
+  }
+
+  /* ---------- Step rendering ---------- */
 
   function makeChoiceButton(labelText, onClick) {
     var btn = document.createElement("button");
@@ -185,7 +235,7 @@
 
   function renderScenarioStep() {
     setStatus(1, "choose a scenario");
-    clearInputArea();
+    clearChildren(inputAreaEl);
     var grid = document.createElement("div");
     grid.className = "choice-grid";
     SCENARIOS.forEach(function (scenario) {
@@ -194,6 +244,8 @@
           state.scenario = scenario;
           callerSay(scenario.label);
           state.step = 1;
+          renderFieldList();
+          addEvent("Identifying issue category: " + scenario.category + ".");
           renderUrgencyStep();
         })
       );
@@ -206,7 +258,7 @@
     agentSay(
       "Got it — " + state.scenario.issue.toLowerCase() + ". How urgent is this for you?"
     );
-    clearInputArea();
+    clearChildren(inputAreaEl);
     var grid = document.createElement("div");
     grid.className = "choice-grid";
     URGENCY_OPTIONS.forEach(function (opt) {
@@ -215,6 +267,12 @@
           state.urgency = opt;
           callerSay(opt.label);
           state.step = 2;
+          renderFieldList();
+          addEvent(
+            opt.id === "emergency"
+              ? "Flagging urgency: emergency (demo rule)."
+              : "Flagging urgency: " + opt.label.toLowerCase() + "."
+          );
           renderNameStep();
         })
       );
@@ -226,7 +284,7 @@
     // opts: { stepNumber, statusText, prompt, fieldLabel, inputType, onSubmit }
     setStatus(opts.stepNumber, opts.statusText);
     agentSay(opts.prompt);
-    clearInputArea();
+    clearChildren(inputAreaEl);
 
     var form = document.createElement("form");
     form.className = "text-input-row";
@@ -283,6 +341,7 @@
       inputType: "text",
       onSubmit: function (value) {
         state.name = value;
+        renderFieldList();
         renderPhoneStep();
       }
     });
@@ -297,6 +356,7 @@
       inputType: "tel",
       onSubmit: function (value) {
         state.phone = value;
+        renderFieldList();
         renderLocationStep();
       }
     });
@@ -311,6 +371,11 @@
       inputType: "text",
       onSubmit: function (value) {
         state.location = value;
+        renderFieldList();
+        addEvent("Checking demo service area for “" + value + "”…");
+        window.setTimeout(function () {
+          addEvent("✓ Within demo service area (simulated business rule).");
+        }, 400);
         renderTimeStep();
       }
     });
@@ -319,7 +384,7 @@
   function renderTimeStep() {
     setStatus(6, "best time to call back");
     agentSay("Last question — when's the best time for someone to call you back?");
-    clearInputArea();
+    clearChildren(inputAreaEl);
     var grid = document.createElement("div");
     grid.className = "choice-grid";
     TIME_OPTIONS.forEach(function (opt) {
@@ -327,11 +392,26 @@
         makeChoiceButton(opt.label, function () {
           state.callTime = opt;
           callerSay(opt.label);
+          renderFieldList();
           renderSummary();
         })
       );
     });
     inputAreaEl.appendChild(grid);
+  }
+
+  function computeRoute() {
+    if (state.scenario.id === "replacement") {
+      return "Estimate request queued";
+    }
+    if (state.urgency.id === "emergency") {
+      return "Routed to on-call technician";
+    }
+    return "Callback scheduled for requested window";
+  }
+
+  function isUrgent() {
+    return state.urgency.id === "emergency";
   }
 
   function renderSummary() {
@@ -342,40 +422,245 @@
         state.callTime.label.toLowerCase() +
         "."
     );
-    clearInputArea();
-    statusEl.textContent = "Demo complete — Lead Rescue summary below";
+    clearChildren(inputAreaEl);
+    stopTimer();
+    statusEl.textContent = "Demo call complete — owner dashboard updated below";
+    callTitleEl.textContent = "Call ended (simulated)";
+    if (callStatusDotEl) {
+      callStatusDotEl.classList.remove("call-status-live");
+      callStatusDotEl.classList.add("call-status-ended");
+    }
 
+    var route = computeRoute();
+    addEvent("Choosing route: " + route + ".");
+    addEvent("Preparing owner notification (example only, not sent).");
+
+    renderDashboard(route);
+  }
+
+  /* ---------- Owner dashboard ---------- */
+
+  function buildLeadSummaryText() {
+    return [
+      "Lead Rescue — simulated lead summary",
+      "Status: " + (isUrgent() ? "Urgent" : "Standard"),
+      "Service category: " + state.scenario.category,
+      "Issue: " + state.scenario.issue,
+      "Urgency: " + state.urgency.label,
+      "Caller: " + state.name,
+      "Phone: " + state.phone,
+      "Location: " + state.location,
+      "Preferred callback window: " + state.callTime.label,
+      "Recommended next action: " + computeRoute(),
+      "(This is demo/simulated data, not a real caller.)"
+    ].join("\n");
+  }
+
+  function buildTranscriptText() {
+    return state.transcript
+      .map(function (line) {
+        var who = line.speaker === "agent" ? "Lead Rescue (demo)" : "Caller (you)";
+        return who + ": " + line.text;
+      })
+      .join("\n");
+  }
+
+  function renderMetrics() {
+    var metricsRow = document.getElementById("metrics-row");
+    clearChildren(metricsRow);
+    var metrics = [
+      { label: "Leads captured (this simulation)", value: "1" },
+      { label: "Calls processed (this simulation)", value: "1" },
+      { label: "Urgent", value: isUrgent() ? "Yes" : "No" }
+    ];
+    metrics.forEach(function (m) {
+      var card = document.createElement("div");
+      card.className = "metric-card";
+      var val = document.createElement("span");
+      val.className = "metric-value";
+      val.textContent = m.value;
+      var lab = document.createElement("span");
+      lab.className = "metric-label";
+      lab.textContent = m.label;
+      card.appendChild(val);
+      card.appendChild(lab);
+      metricsRow.appendChild(card);
+    });
+  }
+
+  function renderLeadCard(route) {
+    var badge = document.getElementById("lead-status-badge");
+    badge.textContent = isUrgent() ? "Urgent" : "Standard";
+    badge.className = "lead-status-badge " + (isUrgent() ? "badge-urgent" : "badge-standard");
+
+    var details = document.getElementById("lead-details");
+    clearChildren(details);
     var rows = [
+      ["Service category", state.scenario.category],
       ["Issue", state.scenario.issue],
       ["Urgency", state.urgency.label],
-      ["Name", state.name],
+      ["Caller", state.name],
       ["Phone", state.phone],
       ["Location", state.location],
-      ["Requested callback window", state.callTime.label]
+      ["Preferred callback window", state.callTime.label],
+      ["Recommended next action", route],
+      ["Disposition", "Simulated — demo lead, not a real caller"]
     ];
-
-    while (summaryList.firstChild) {
-      summaryList.removeChild(summaryList.firstChild);
-    }
     rows.forEach(function (row) {
       var dt = document.createElement("dt");
       dt.textContent = row[0];
       var dd = document.createElement("dd");
       dd.textContent = row[1];
-      summaryList.appendChild(dt);
-      summaryList.appendChild(dd);
+      details.appendChild(dt);
+      details.appendChild(dd);
+    });
+  }
+
+  function renderNotificationPreview() {
+    var preview = document.getElementById("notification-preview");
+    clearChildren(preview);
+
+    var header = document.createElement("div");
+    header.className = "notification-header";
+    header.textContent = "New lead — " + state.scenario.category + (isUrgent() ? " (URGENT)" : "");
+    preview.appendChild(header);
+
+    var body = document.createElement("div");
+    body.className = "notification-body";
+    var lines = [
+      state.name + " — " + state.phone,
+      state.location,
+      state.scenario.issue + " · " + state.urgency.label,
+      "Callback window: " + state.callTime.label
+    ];
+    lines.forEach(function (text) {
+      var p = document.createElement("p");
+      p.textContent = text;
+      body.appendChild(p);
+    });
+    preview.appendChild(body);
+
+    var footer = document.createElement("div");
+    footer.className = "notification-footer";
+    footer.textContent = "Example notification — not actually sent from this demo.";
+    preview.appendChild(footer);
+  }
+
+  function renderTranscriptBlock() {
+    var block = document.getElementById("transcript-list");
+    clearChildren(block);
+    state.transcript.forEach(function (line) {
+      var row = document.createElement("p");
+      row.className = "transcript-row " + (line.speaker === "agent" ? "transcript-agent" : "transcript-caller");
+      var strong = document.createElement("strong");
+      strong.textContent = (line.speaker === "agent" ? "Lead Rescue (demo): " : "Caller (you): ");
+      row.appendChild(strong);
+      row.appendChild(document.createTextNode(line.text));
+      block.appendChild(row);
+    });
+  }
+
+  function renderRecentCalls(route) {
+    var body = document.getElementById("recent-calls-body");
+    clearChildren(body);
+    var now = new Date();
+    var timeText = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+    var row = document.createElement("tr");
+    [timeText, state.scenario.category, state.urgency.label, state.name, route].forEach(function (text) {
+      var td = document.createElement("td");
+      td.textContent = text;
+      row.appendChild(td);
+    });
+    body.appendChild(row);
+  }
+
+  function renderDashboard(route) {
+    renderMetrics();
+    renderLeadCard(route);
+    renderNotificationPreview();
+    renderTranscriptBlock();
+    renderRecentCalls(route);
+
+    var dashboardSection = document.getElementById("dashboard");
+    dashboardSection.hidden = false;
+    dashboardSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function hideDashboard() {
+    document.getElementById("dashboard").hidden = true;
+    document.getElementById("copy-status").textContent = "";
+  }
+
+  /* ---------- Copy helpers ---------- */
+
+  function copyText(text, onDone) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(function () {
+          onDone(true);
+        })
+        .catch(function () {
+          onDone(false);
+        });
+    } else {
+      onDone(false);
+    }
+  }
+
+  function initDashboardActions() {
+    var copySummaryBtn = document.getElementById("copy-summary");
+    var copyTranscriptBtn = document.getElementById("copy-transcript");
+    var replayBtn = document.getElementById("replay-demo");
+    var statusEl2 = document.getElementById("copy-status");
+
+    copySummaryBtn.addEventListener("click", function () {
+      copyText(buildLeadSummaryText(), function (success) {
+        statusEl2.textContent = success
+          ? "Lead summary copied to clipboard."
+          : "Couldn't copy automatically — select and copy the summary text manually.";
+      });
     });
 
-    summaryCard.hidden = false;
-    summaryCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    copyTranscriptBtn.addEventListener("click", function () {
+      copyText(buildTranscriptText(), function (success) {
+        statusEl2.textContent = success
+          ? "Transcript copied to clipboard."
+          : "Couldn't copy automatically — select and copy the transcript manually.";
+      });
+    });
+
+    replayBtn.addEventListener("click", function () {
+      hideDashboard();
+      startDemo();
+      document.getElementById("demo-shell").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
+
+  /* ---------- Demo lifecycle ---------- */
 
   function startDemo() {
     resetState();
-    clearLog();
-    summaryCard.hidden = true;
+    clearChildren(callLogEl);
+    clearChildren(eventRailEl);
+    var placeholder = document.createElement("li");
+    placeholder.className = "event-placeholder";
+    placeholder.textContent = "Actions will appear here as the call progresses.";
+    eventRailEl.appendChild(placeholder);
+    hideDashboard();
+    renderFieldList();
+
+    callTitleEl.textContent = "Incoming call — after hours (simulated)";
+    if (callStatusDotEl) {
+      callStatusDotEl.classList.add("call-status-live");
+      callStatusDotEl.classList.remove("call-status-ended");
+    }
+    startTimer();
+
     agentSay(
-      "Thanks for calling — our office is closed right now, but I can get some details so the team can call you back. What's going on?"
+      "Thanks for calling — our office is closed right now, and I'm an automated assistant. I can get " +
+        "some details so the team can call you back. What's going on?"
     );
     renderScenarioStep();
   }
@@ -384,12 +669,18 @@
     callLogEl = document.getElementById("call-log");
     inputAreaEl = document.getElementById("demo-input-area");
     statusEl = document.getElementById("demo-status");
-    summaryCard = document.getElementById("summary-card");
-    summaryList = document.getElementById("summary-list");
+    fieldListEl = document.getElementById("field-list");
+    eventRailEl = document.getElementById("event-rail");
+    callTitleEl = document.getElementById("call-title");
+    callTimerEl = document.getElementById("call-timer");
+    callStatusDotEl = document.getElementById("call-status-dot");
 
-    document.getElementById("reset-demo").addEventListener("click", startDemo);
-    document.getElementById("replay-demo").addEventListener("click", startDemo);
+    document.getElementById("reset-demo").addEventListener("click", function () {
+      hideDashboard();
+      startDemo();
+    });
 
+    initDashboardActions();
     startDemo();
   }
 
@@ -452,24 +743,11 @@
         businessLine +
         " (no card, no contract). Please configure it around our actual after-hours call flow and confirm usage/telephony limits before activation.";
 
-      function showConfirm(success) {
+      copyText(message, function (success) {
         confirmEl.textContent = success
           ? "Copied — paste it into your reply email."
           : "Couldn't copy automatically — please select and copy the request text manually.";
-      }
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard
-          .writeText(message)
-          .then(function () {
-            showConfirm(true);
-          })
-          .catch(function () {
-            showConfirm(false);
-          });
-      } else {
-        showConfirm(false);
-      }
+      });
     });
   }
 
@@ -477,7 +755,6 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     applyPersonalization();
-    initMuteToggle();
     initDemo();
     initRoiCalculator();
     initCopyRequest();

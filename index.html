@@ -17,9 +17,10 @@
       <ul class="nav-list">
         <li><a href="#how-it-works">How it works</a></li>
         <li><a href="#demo">Try the demo</a></li>
-        <li><a href="#roi">ROI estimate</a></li>
-        <li><a href="#offer">Pricing</a></li>
-        <li><a href="#cta" class="nav-cta">Get started</a></li>
+        <li><a href="#dashboard">Owner view</a></li>
+        <li><a href="#capabilities">Capabilities</a></li>
+        <li><a href="#roi">ROI</a></li>
+        <li><a href="#offer" class="nav-cta">Pilot offer</a></li>
       </ul>
     </nav>
   </div>
@@ -30,82 +31,192 @@
   <section id="top" class="hero">
     <div class="wrap">
       <p class="eyebrow" id="hero-eyebrow">After-hours lead rescue for HVAC contractors</p>
-      <h1 id="hero-heading">Capture the HVAC calls that come in after your office closes.</h1>
+      <h1 id="hero-heading">When your office closes, Lead Rescue keeps capturing HVAC leads.</h1>
       <p class="hero-sub" id="hero-sub">
         When a homeowner calls after hours with no heat, no cooling, or a leaking system,
-        Lead Rescue answers, qualifies the job, and gets you a concise lead summary —
-        instead of a voicemail nobody hears until morning.
+        Lead Rescue answers, qualifies the job, checks your business rules, and gets you a
+        structured lead summary — instead of a voicemail nobody hears until morning.
       </p>
+      <p class="hero-note" id="hero-personalized" hidden></p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="#demo">Try the interactive demo</a>
+        <a class="btn btn-primary" href="#demo">Launch the interactive demo</a>
         <a class="btn btn-secondary" href="#offer">See the 7-night pilot offer</a>
       </div>
-      <p class="hero-note" id="hero-personalized" hidden></p>
+      <p class="hero-disclaimer">
+        This page is a simulated workflow so you can see the full process end to end. The live
+        pilot uses a natural, production-grade conversational voice and is configured around your
+        business's own rules — nothing here is a live phone line.
+      </p>
     </div>
   </section>
 
   <section id="how-it-works" class="section">
     <div class="wrap">
-      <h2>How it works</h2>
-      <ol class="steps">
-        <li>
-          <span class="step-num">1</span>
-          <h3>Missed and after-hours calls get routed to Lead Rescue</h3>
-          <p>When nobody in your office can pick up, the call goes to Lead Rescue instead of voicemail.</p>
-        </li>
-        <li>
-          <span class="step-num">2</span>
-          <h3>Lead Rescue qualifies the caller</h3>
-          <p>It captures the issue, urgency, contact info, and service location using a structured conversation.</p>
-        </li>
-        <li>
-          <span class="step-num">3</span>
-          <h3>You get a lead summary and booking request</h3>
-          <p>You receive a short, readable summary so you can call back and book the job — not a wall of transcript.</p>
-        </li>
-      </ol>
+      <h2>What happens on a real after-hours call</h2>
+      <p class="section-lede">Three participants, one workflow. Here is what each one does.</p>
+      <div class="flow-grid">
+        <div class="flow-card">
+          <span class="flow-icon" aria-hidden="true">📞</span>
+          <span class="flow-role">1. Caller</span>
+          <h3>Reaches an automated receptionist</h3>
+          <p>It answers immediately, discloses that it's automated, and asks relevant questions about
+          the HVAC problem — issue, urgency, contact info, and service location.</p>
+        </div>
+        <div class="flow-card">
+          <span class="flow-icon" aria-hidden="true">🧠</span>
+          <span class="flow-role">2. Lead Rescue</span>
+          <h3>Extracts, checks, and routes</h3>
+          <p>It extracts the contact and service details, checks them against the business's own
+          rules and service area, and decides the right next action — on-call, callback, or estimate.</p>
+        </div>
+        <div class="flow-card">
+          <span class="flow-icon" aria-hidden="true">🛠️</span>
+          <span class="flow-role">3. Owner</span>
+          <h3>Gets a ready-to-act lead</h3>
+          <p>A structured lead summary, a callback or appointment request, and a full transcript with
+          disposition — so you can call back and book the job instead of chasing details.</p>
+        </div>
+      </div>
     </div>
   </section>
 
   <section id="demo" class="section section-alt">
     <div class="wrap">
-      <h2>Try the after-hours call demo</h2>
+      <h2>Try the after-hours call simulation</h2>
       <p class="section-lede">
-        This is an interactive simulation running in your browser — it is <strong>not</strong> a live phone
-        line and no call is actually placed. It demonstrates the qualification flow a real caller would
-        experience after hours.
+        This is an interactive simulation running in your browser — it is <strong>not</strong> a live
+        phone line and no call is actually placed. It demonstrates the qualification workflow a real
+        after-hours caller would experience, using demo business rules.
       </p>
 
-      <div class="demo-shell" id="demo-shell">
-        <div class="demo-toolbar">
-          <span class="demo-label" id="demo-status">Step 1 of 6 — choose a scenario</span>
-          <div class="demo-controls">
-            <button type="button" id="mute-toggle" class="btn btn-ghost" aria-pressed="false">
-              <span id="mute-icon" aria-hidden="true">🔊</span>
-              <span id="mute-label">Voice: on</span>
-            </button>
+      <div class="demo-grid">
+        <div class="call-panel" id="demo-shell">
+          <div class="call-header">
+            <span class="call-status-dot" id="call-status-dot" aria-hidden="true"></span>
+            <div class="call-header-text">
+              <span class="call-title" id="call-title">Incoming call — after hours (simulated)</span>
+              <span class="call-timer" id="call-timer">00:00</span>
+            </div>
             <button type="button" id="reset-demo" class="btn btn-ghost">Reset demo</button>
+          </div>
+          <p class="demo-status" id="demo-status">Step 1 of 6 — choose a scenario</p>
+
+          <div class="call-log" id="call-log" role="log" aria-live="polite" aria-label="Simulated call transcript"></div>
+
+          <div class="demo-input-area" id="demo-input-area">
+            <!-- populated by app.js -->
           </div>
         </div>
 
-        <div class="call-log" id="call-log" role="log" aria-live="polite" aria-label="Simulated call transcript"></div>
+        <aside class="extraction-panel">
+          <h3>Live extraction <span class="tag-demo">DEMO</span></h3>
+          <dl class="field-list" id="field-list"></dl>
 
-        <div class="demo-input-area" id="demo-input-area">
-          <!-- populated by app.js -->
-        </div>
-      </div>
-
-      <div class="summary-card" id="summary-card" hidden>
-        <h3>Lead Rescue Summary</h3>
-        <dl id="summary-list"></dl>
-        <div class="summary-actions">
-          <button type="button" id="replay-demo" class="btn btn-secondary">Replay demo</button>
-        </div>
+          <h3>AI actions</h3>
+          <ul class="event-rail" id="event-rail">
+            <li class="event-placeholder">Actions will appear here as the call progresses.</li>
+          </ul>
+        </aside>
       </div>
     </div>
   </section>
 
-  <section id="roi" class="section">
+  <section id="dashboard" class="section" hidden>
+    <div class="wrap">
+      <h2>Owner dashboard — what you get</h2>
+      <p class="section-lede">
+        Populated from the simulated call you just ran. Everything below is generated only from that
+        one simulation — nothing here is historical or real business data.
+      </p>
+
+      <div class="metrics-row" id="metrics-row"></div>
+
+      <div class="dashboard-grid">
+        <div class="lead-card" id="lead-card">
+          <div class="lead-card-header">
+            <span class="lead-status-badge" id="lead-status-badge">Standard</span>
+            <span class="tag-demo">SIMULATED LEAD</span>
+          </div>
+          <dl class="lead-details" id="lead-details"></dl>
+          <div class="lead-actions">
+            <button type="button" id="copy-summary" class="btn btn-secondary">Copy lead summary</button>
+            <button type="button" id="copy-transcript" class="btn btn-secondary">Copy transcript</button>
+            <button type="button" id="replay-demo" class="btn btn-secondary">Reset / replay</button>
+          </div>
+          <span id="copy-status" class="copy-confirm" role="status" aria-live="polite"></span>
+        </div>
+
+        <div class="notification-card">
+          <h3>Example owner notification <span class="tag-demo">EXAMPLE NOTIFICATION</span></h3>
+          <p class="notification-note">This is a mock-up of what an SMS/email alert could look like. No
+          message is actually sent from this demo.</p>
+          <div class="notification-preview" id="notification-preview"></div>
+        </div>
+      </div>
+
+      <div class="transcript-block">
+        <h3>Full transcript <span class="tag-demo">DEMO</span></h3>
+        <div class="transcript-list" id="transcript-list"></div>
+      </div>
+
+      <div class="recent-calls-block">
+        <h3>Recent calls <span class="tag-demo">DEMO DATA</span></h3>
+        <p class="section-lede">Only the call you just completed appears here — this is not a record of
+        real historical volume.</p>
+        <table class="recent-calls-table" id="recent-calls-table">
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Category</th>
+              <th scope="col">Urgency</th>
+              <th scope="col">Caller</th>
+              <th scope="col">Next action</th>
+            </tr>
+          </thead>
+          <tbody id="recent-calls-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="capabilities" class="section section-alt">
+    <div class="wrap">
+      <h2>What a live deployment can do</h2>
+      <p class="section-lede">
+        These are configurable live-pilot capabilities set up for your business — not features that
+        are already wired to a vendor or connected today.
+      </p>
+      <div class="capability-grid">
+        <div class="capability-card"><h3>Answer missed &amp; after-hours calls</h3><p>Picks up when your team can't, on the schedule you define.</p></div>
+        <div class="capability-card"><h3>Qualify the HVAC issue</h3><p>Determines the problem type so the right person can act on it.</p></div>
+        <div class="capability-card"><h3>Capture contact &amp; service address</h3><p>Name, callback number, and service location, every time.</p></div>
+        <div class="capability-card"><h3>Urgency &amp; safety escalation rules</h3><p>Flags emergencies per rules you configure for your business.</p></div>
+        <div class="capability-card"><h3>Business-hours vs after-hours routing</h3><p>Routes differently depending on when the call comes in.</p></div>
+        <div class="capability-card"><h3>Callback / appointment requests</h3><p>Captures a preferred callback window or appointment ask.</p></div>
+        <div class="capability-card"><h3>Lead summary + transcript</h3><p>A short, readable summary plus the full conversation record.</p></div>
+        <div class="capability-card"><h3>Owner / team notification</h3><p>Configurable alerts to the people who need to follow up.</p></div>
+        <div class="capability-card"><h3>Configurable scripts &amp; business rules</h3><p>You control what it asks and how it responds.</p></div>
+        <div class="capability-card"><h3>Call analytics</h3><p>Track volume, categories, and outcomes as real calls accumulate.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="voice" class="section">
+    <div class="wrap">
+      <div class="voice-card">
+        <h2>About the voice</h2>
+        <ul class="voice-list">
+          <li>This web demo does <strong>not</strong> use the production phone voice — it's a text-based
+          simulation of the workflow.</li>
+          <li>The live pilot uses a natural, production-grade conversational voice stack, configured for
+          your business during pilot setup.</li>
+          <li>Browser or system text-to-speech is never used as the production phone voice.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="roi" class="section section-alt">
     <div class="wrap">
       <h2>Estimate what missed calls might be costing you</h2>
       <p class="section-lede">
@@ -140,7 +251,7 @@
     </div>
   </section>
 
-  <section id="offer" class="section section-alt">
+  <section id="offer" class="section">
     <div class="wrap">
       <h2>Founding offer</h2>
       <div class="offer-card">
@@ -157,19 +268,23 @@
     </div>
   </section>
 
-  <section id="trust" class="section">
+  <section id="trust" class="section section-alt">
     <div class="wrap">
-      <h2>Privacy and trust</h2>
+      <h2>Trust and safety</h2>
       <ul class="trust-list">
+        <li>Lead Rescue does not pretend to be a human. Callers are told up front that they're speaking
+        with an automated receptionist.</li>
+        <li>For medical, fire, or gas-leak emergencies, the system does not give technical advice — it
+        routes the caller toward emergency services or your configured emergency procedure.</li>
         <li>We do not sell caller data to third parties.</li>
-        <li>Lead Rescue does not pretend to be a human. In a real deployment, callers are told they are speaking with an automated receptionist.</li>
-        <li>Emergency-sounding situations are flagged for escalation, not silently queued.</li>
         <li>You control the script: what Lead Rescue asks, how it responds, and when it hands off to your team.</li>
+        <li>Transcript and recording disclosure is configured to match applicable law and your business's
+        policy — this page does not make broad legal guarantees.</li>
       </ul>
     </div>
   </section>
 
-  <section id="cta" class="section section-alt cta-section">
+  <section id="cta" class="section cta-section">
     <div class="wrap">
       <h2>Would it be worth testing this for 7 nights?</h2>
       <p class="section-lede" id="cta-lede">
