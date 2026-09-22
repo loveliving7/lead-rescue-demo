@@ -33,9 +33,9 @@
     var ctaLede = document.getElementById("cta-lede");
     if (ctaLede) {
       ctaLede.textContent =
-        "Reply to the email that sent you this demo and we'll configure a live pilot around " +
+        "Reply to the email that sent you this demo and we'll configure a 7-night live pilot around " +
         info.business +
-        "'s actual call flow.";
+        "'s actual call flow — no card, no contract.";
     }
     document.title = "Lead Rescue — a demo built for " + info.business;
   }
@@ -448,9 +448,9 @@
       var info = getProspectInfo();
       var businessLine = info.business ? " for " + info.business : "";
       var message =
-        "Hi — I'd like to set up a Lead Rescue live pilot" +
+        "Hi — I'd like to request a 7-night Lead Rescue live pilot" +
         businessLine +
-        ". Please configure it around our actual after-hours call flow and confirm usage/telephony limits before activation.";
+        " (no card, no contract). Please configure it around our actual after-hours call flow and confirm usage/telephony limits before activation.";
 
       function showConfirm(success) {
         confirmEl.textContent = success
